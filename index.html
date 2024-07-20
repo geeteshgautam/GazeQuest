@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Tracking Car Game</title>
+    <video autoplay muted loop>
+        <source src="vid.mp4" type="video/mp4">
+      </video>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game {
+            width: 800px;
+            height: 600px;
+            border: 2px solid #000;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+        }
+        #car {
+            width: 50px;
+            height: 100px;
+            background: url('veh.png') no-repeat center center;
+            background-size: cover;
+            position: absolute;
+            bottom: 20px;
+            left: 375px;
+        }
+        .obstacle {
+            width: 100px;
+            height: 100px;
+            background: url('obs.jpg') no-repeat center center;
+            background-size: cover;
+            position: absolute;
+            top: 100px;
+        }
+        .message {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border: 2px solid #000;
+            font-size: 24px;
+            text-align: center;
+        }
+        .tryAgainMessage {
+            position: top;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+            color: blue;
+            display: center;
+        }
+        video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 50%;
+  min-height: 100%;
+  z-index:-100;
+}
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div id="car"></div>
+    </div>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <script>
+        window.onload = function() {
+            // Start webgazer
+            webgazer.setGazeListener(function(data, elapsedTime) {
+                if (data == null) {
+                    return;
+                }
+                var xPrediction = data.x; // x position of gaze
+
+                var car = document.getElementById('car');
+                var game = document.getElementById('game');
+                
+                // Move the car horizontally based on gaze position
+                var newCarLeft = xPrediction - car.offsetWidth / 2;
+                if (newCarLeft < 0) newCarLeft = 0;
+                if (newCarLeft > game.offsetWidth - car.offsetWidth) newCarLeft = game.offsetWidth - car.offsetWidth;
+                car.style.left = newCarLeft + 'px';
+            }).begin();
+
+            // Game variables
+            var game = document.getElementById('game');
+            var car = document.getElementById('car');
+            var message = document.getElementById('message');
+            var tryAgainMessage = document.getElementById('tryAgainMessage');
+            var obstacles = [];
+            var gameInterval;
+            var obstacleInterval;
+            var message = document.getElementById('message');
+            var gameOver = false;
+
+            // Function to create obstacles
+            function createObstacle() {
+                var obstacle = document.createElement('div');
+                obstacle.className = 'obstacle';
+                obstacle.style.left = Math.random() * (game.offsetWidth - 50) + 'px';
+                obstacle.style.top = '0px';
+                game.appendChild(obstacle);
+                obstacles.push(obstacle);
+            }
+
+            // Function to move obstacles
+            function moveObstacles() {
+                for (var i = 0; i < obstacles.length; i++) {
+                    var obstacle = obstacles[i];
+                    var obstacleTop = parseInt(obstacle.style.top.replace('px', ''));
+                    obstacle.style.top = (obstacleTop + 5) + 'px';
+                    
+                    // Check for collision
+                    if (isColliding(car, obstacle)) {
+                        clearInterval(gameInterval);
+                        clearInterval(obstacleInterval);
+                        message.style.display = 'block'; // Show the loss message
+                        return; // Exit the function
+                        alert('Game Over!');
+                        window.location.reload();
+                    }
+
+                    // Remove obstacle if it goes off screen
+                    if (obstacleTop > game.offsetHeight) {
+                        game.removeChild(obstacle);
+                        obstacles.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+
+            // Function to check for collision
+            function isColliding(car, obstacle) {
+                var carRect = car.getBoundingClientRect();
+                var obstacleRect = obstacle.getBoundingClientRect();
+                return !(
+                    carRect.top > obstacleRect.bottom ||
+                    carRect.bottom < obstacleRect.top ||
+                    carRect.right < obstacleRect.left ||
+                    carRect.left > obstacleRect.right
+                );
+            }
+
+            // Start the game
+            function startGame() {
+                gameInterval = setInterval(moveObstacles, 50);
+                obstacleInterval = setInterval(createObstacle, 1000);
+            }
+// Display "Try again!" message after 60 seconds
+setTimeout(function() {
+                    if (!gameOver) {
+                        tryAgainMessage.style.display = 'block';
+                    }
+                }, 60000);
+            startGame();
+        };
+
+        // Calibration settings
+        webgazer.setRegression('ridge'); // Use ridge regression for improved accuracy
+        webgazer.showVideoPreview(true); // Show video preview
+        webgazer.showPredictionPoints(true); // Show prediction points
+    </script>
+</body>
+</html>
